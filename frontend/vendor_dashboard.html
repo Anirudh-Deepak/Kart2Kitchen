@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vendor Dashboard</title>
+<style>
+body { font-family: Arial; background:#f2f2f2; padding:20px; margin:0;}
+.container { background:#fff; padding:20px; border-radius:10px; max-width:900px; margin:auto; box-shadow:0 5px 15px rgba(0,0,0,0.2);}
+h2 { margin-bottom:15px; }
+p { font-size:16px; margin:8px 0; }
+hr { margin:20px 0; }
+.form-row { display:flex; gap:10px; flex-wrap:wrap; }
+.form-row input { flex:1; padding:10px; border:1px solid #ccc; border-radius:6px; }
+button { padding:10px 15px; border:none; border-radius:6px; cursor:pointer; font-size:14px; }
+.btn-danger { background:#dc3545; color:#fff; }
+.btn-primary { background:#28a745; color:#fff; }
+.btn-primary:hover { background:#218838; }
+.btn-danger:hover { background:#c82333; }
+table { width:100%; border-collapse: collapse; margin-top:15px; }
+th, td { padding:10px; border:1px solid #ccc; text-align:left; }
+th { background:#28a745; color:#fff; }
+@media (max-width: 768px) {
+  .form-row { flex-direction: column; }
+  .form-row input, .form-row button { width:100%; }
+  table, th, td { font-size:12px; }
+  table {
+    display:block;
+    overflow-x:auto; 
+    white-space:nowrap;
+  }
+  button { font-size:12px; padding:8px 12px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+    <h2>Welcome, <span id="vendorName"></span>!</h2>
+    <p><b>Phone:</b> <span id="vendorPhone"></span></p>
+    <p><b>Locality:</b> <span id="vendorLocality"></span></p>
+    <p><b>Service:</b> <span id="vendorService"></span></p>
+    <p><b>Scanner Code:</b> <span id="vendorScanner"></span></p>
+
+    <hr>
+
+    <h3>Add Vegetable</h3>
+    <div class="form-row">
+      <input type="text" id="vegName" placeholder="Vegetable name (e.g., Tomato)">
+      <input type="number" id="vegRate" placeholder="Rate (per kg)" min="0" step="0.5">
+      <input type="text" id="vegArea" placeholder="Area / Locality">
+      <button class="btn-primary" onclick="addVegetable()">Add</button>
+    </div>
+
+    <h3 style="margin-top:25px;">Your Vegetables</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Vegetable</th>
+          <th>Rate</th>
+          <th>Area</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="vegBody">
+        <tr><td colspan="4" style="text-align:center;color:gray;">Loading...</td></tr>
+      </tbody>
+    </table>
+
+    <button class="btn-danger" style="margin-top:20px;" onclick="logout()">Logout</button>
+</div>
+
+<script>
+const session = JSON.parse(localStorage.getItem('session'));
+if(!session || session.role !== 'vendor'){
+    window.location.href = 'index.html';
+}
+
+document.getElementById('vendorName').innerText = session.name;
+document.getElementById('vendorPhone').innerText = session.phone;
+document.getElementById('vendorLocality').innerText = session.locality;
+document.getElementById('vendorService').innerText = session.service || 'General';
+document.getElementById('vendorScanner').innerText = session.scannerCode || '(will appear after relogin)';
+
+async function loadVegetables(){
+  const res = await fetch(`http://localhost:5000/vendor/${encodeURIComponent(session.phone)}/vegetables`);
+  const data = await res.json();
+  renderTable(data);
+}
+
+function renderTable(items){
+  const tbody = document.getElementById('vegBody');
+  tbody.innerHTML = '';
+  if(!items || !items.length){
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:gray;">No vegetables added yet</td></tr>';
+    return;
+  }
+  items.forEach(it => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${it.name}</td>
+      <td>₹ ${it.rate}</td>
+      <td>${it.area}</td>
+      <td>
+        <button class="btn-danger" onclick="deleteVegetable('${it._id}')">Delete</button>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+}
+
+async function addVegetable(){
+  const name = document.getElementById('vegName').value.trim();
+  const rate = document.getElementById('vegRate').value.trim();
+  const area = document.getElementById('vegArea').value.trim();
+  if(!name || rate === '' || !area){ return alert('Please fill all fields'); }
+
+  const res = await fetch('http://localhost:5000/vendor_add_vegetable', {
+    method: 'POST',
+    headers: { 'Content-Type':'application/json' },
+    body: JSON.stringify({ phone: session.phone, vegetable: { name, rate: Number(rate), area } })
+  });
+  const data = await res.json();
+  if(res.ok){
+    document.getElementById('vegName').value='';
+    document.getElementById('vegRate').value='';
+    document.getElementById('vegArea').value='';
+    renderTable(data.vegetables);
+  } else {
+    alert(data.error || 'Failed to add');
+  }
+}
+
+async function deleteVegetable(vegId){
+  if(!confirm('Delete this item?')) return;
+  const res = await fetch(`http://localhost:5000/vendor/${encodeURIComponent(session.phone)}/vegetables/${vegId}`, {
+    method: 'DELETE'
+  });
+  const data = await res.json();
+  if(res.ok){
+    loadVegetables();
+  } else {
+    alert(data.error || 'Delete failed');
+  }
+}
+
+function logout(){
+  localStorage.removeItem('session');
+  window.location.href = 'index.html';
+}
+
+loadVegetables();
+</script>
+</body>
+</html>
