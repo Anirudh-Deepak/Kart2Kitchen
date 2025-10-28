@@ -101,7 +101,7 @@ if(!session || session.role !== 'user'){
     window.location.replace('index.html');
 }
 
-document.getElementById('welcomeText').innerText = `Welcome ${session.name || 'User'}!`;
+document.getElementById('welcomeText').innerText = `Welcome ${session.name || 'User'} ! - Dashboard`;
 document.getElementById('userPhone').innerText = session.phone || 'N/A';
 
 let allItems = [];
