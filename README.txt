@@ -17,3 +17,9 @@ HOW TO DOWNLOAD:
 11) Click on OPEN WITH LIVE SERVER.
 12) the project will be opened.
 IMPORTANT: THE GIVEN PROJECT FILE USES MONGO DB AS THE BACKEND HENCE IT IS VERY IMPORTANT TO HAVE MONGO DB COMPASS CONNECTED ON THE DEVICE.
+
+FOR ENTERING SAMPLE DATA FOR REGISTRATION:
+User Registration:
+Ex: Name->User1 Phone->90000000001 //Exactly 10 digits. Password-> User1
+Will directly guide to dashboard
+Similar steps for Vendor Registration just specify locality.
